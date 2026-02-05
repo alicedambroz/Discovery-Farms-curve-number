@@ -219,7 +219,6 @@ dev.off()
 ```
 
 
-
 #Statistics
 ```{r}
 data %>%
