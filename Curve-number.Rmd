@@ -39,29 +39,29 @@ all_sites$Site <- as.factor(all_sites$Site)
 
 #Hydrographs all sites
 ```{r}
-# 1. SETUP
+#Setting directory
 output_dir <- "/Users/alicedambroz/Desktop/03. Posdoc UMN/Discovery Farms/Python-output" # Update this!
 if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
 
 df_events <- read_csv("/Users/alicedambroz/Desktop/03. Posdoc UMN/Discovery Farms/Python-output/All_Sites_Events_Plotting.csv")
 df_events$Date <- ymd_hms(df_events$Date)
 
-# 2. PLOTTING FUNCTION (Updated)
+#Function for hydrographs
 plot_rainfall_runoff <- function(df_event, event_id, site_name) {
   
   min_time <- min(df_event$Date, na.rm = TRUE)
   max_time <- max(df_event$Date, na.rm = TRUE)
   
-  # Extract the Frozen status (it's the same for all rows in this event)
+  #Adding 'frozen' status
   frozen_status <- unique(df_event$Frozen)[1]
   
-  # Create a custom title string
+  #Adding information as title
   plot_title <- paste0("Site: ", site_name, " | Event: ", event_id, " | Condition: ", frozen_status)
   
-  # Optional: Make title RED if Frozen, BLACK if Nonfrozen (visual aid)
+  #Changing color for 'frozen' status
   title_color <- ifelse(tolower(frozen_status) == "frozen", "red", "black")
 
-  # --- Plot 1: Rainfall ---
+  #Rainfall
   g_rain <- ggplot(df_event, aes(x = Date)) +
     geom_bar(aes(y = Rainfall_mm), stat = 'identity', fill = "blue", width = 60) +
     scale_y_reverse(name = "Rainfall (mm)", expand = expansion(mult = c(0.1, 0))) +
@@ -74,11 +74,11 @@ plot_rainfall_runoff <- function(df_event, event_id, site_name) {
       axis.title.y = element_text(color = "blue", size = 10),
       axis.text.y = element_text(size = 8),
       plot.margin = margin(t = 10, r = 10, b = 0, l = 10),
-      plot.title = element_text(color = title_color, face = "bold") # Apply color here
+      plot.title = element_text(color = title_color, face = "bold")
     ) +
-    labs(title = plot_title) # Use new title
+    labs(title = plot_title)
 
-  # --- Plot 2: Runoff ---
+  #Runoff
   g_flow <- ggplot(df_event, aes(x = Date)) +
     geom_line(aes(y = Volume_mm), color = "black", linewidth = 1) +
     scale_y_continuous(name = "Runoff Volume (mm)", limits = c(0, NA)) +
@@ -92,7 +92,7 @@ plot_rainfall_runoff <- function(df_event, event_id, site_name) {
       plot.margin = margin(t = 0, r = 10, b = 10, l = 10)
     )
 
-  # --- Combine ---
+  #Combine P and Q
   g_rain_grob <- ggplotGrob(g_rain)
   g_flow_grob <- ggplotGrob(g_flow)
   maxWidth <- grid::unit.pmax(g_rain_grob$widths[2:5], g_flow_grob$widths[2:5])
@@ -103,9 +103,8 @@ plot_rainfall_runoff <- function(df_event, event_id, site_name) {
   return(combined_plot)
 }
 
-# 3. LOOP
-# We extract unique combinations of Site + Event. 
-# We don't need 'Frozen' in this list to drive the loop, but the function will look it up.
+#Loop for hydrographs
+#Plots per site and per event number
 unique_pairs <- unique(df_events[, c("Site", "Event")])
 unique_pairs <- unique_pairs[order(unique_pairs$Site, unique_pairs$Event), ]
 
@@ -127,29 +126,29 @@ for(i in 1:nrow(unique_pairs)) {
   }
 }
 dev.off()
-print("Done!")
+print()
 ```
 
 
 
 #Hydrographs per site
 ```{r}
-# Ensure Date is parsed correctly (adjust format if your CSV is different)
+#Data format
 df_events$Date <- ymd_hms(df_events$Date) 
 
-# 2. Define the plotting function
+#Plot function
 plot_rainfall_runoff <- function(df_event, event_id) {
   
   # Calculate limits to ensure both plots share the exact same X-axis
   min_time <- min(df_event$Date, na.rm = TRUE)
   max_time <- max(df_event$Date, na.rm = TRUE)
   
-  # --- Plot 1: Rainfall (Top, Inverted) ---
+  #Rainfall
   g_rain <- ggplot(df_event, aes(x = Date)) +
-    geom_bar(aes(y = Rainfall_mm), stat = 'identity', fill = "blue", width = 60) + # width=60 for 1-min data visibility
+    geom_bar(aes(y = Rainfall_mm), stat = 'identity', fill = "blue", width = 60) + #width=60 for 1-min data visibility
     scale_y_reverse(
       name = "Rainfall (mm)",
-      expand = expansion(mult = c(0.1, 0)) # Add small buffer at top
+      expand = expansion(mult = c(0.1, 0)) #small buffer at top
     ) +
     scale_x_datetime(
       limits = c(min_time, max_time), 
@@ -158,20 +157,20 @@ plot_rainfall_runoff <- function(df_event, event_id) {
     theme_light(base_size = 12) +
     theme(
       axis.title.x = element_blank(),
-      axis.text.x = element_blank(),    # Hide x-axis text for top plot
+      axis.text.x = element_blank(),    #hide x-axis text for top plot
       axis.ticks.x = element_blank(),
       axis.title.y = element_text(color = "blue", size = 10),
       axis.text.y = element_text(size = 8),
-      plot.margin = margin(t = 10, r = 10, b = 0, l = 10) # Reduce bottom margin
+      plot.margin = margin(t = 10, r = 10, b = 0, l = 10) #reduce bottom margin
     ) +
-    labs(title = paste("Event ID:", event_id)) # Add Event ID title
+    labs(title = paste("Event ID:", event_id))
 
-  # --- Plot 2: Runoff / Volume (Bottom) ---
+  #Runoff
   g_flow <- ggplot(df_event, aes(x = Date)) +
     geom_line(aes(y = Volume_mm), color = "black", linewidth = 1) +
     scale_y_continuous(
       name = "Runoff Volume (mm)", 
-      limits = c(0, NA) # Force y-axis to start at 0
+      limits = c(0, NA) #y-axis start at 0
     ) +
     scale_x_datetime(
       limits = c(min_time, max_time), 
@@ -183,12 +182,11 @@ plot_rainfall_runoff <- function(df_event, event_id) {
     theme(
       axis.title.y = element_text(size = 10),
       axis.text.y = element_text(size = 8),
-      axis.text.x = element_text(angle = 45, hjust = 1), # Angle x-text for readability
-      plot.margin = margin(t = 0, r = 10, b = 10, l = 10) # Reduce top margin
+      axis.text.x = element_text(angle = 45, hjust = 1), #angle x-axis text
+      plot.margin = margin(t = 0, r = 10, b = 10, l = 10) #reduce top margin
     )
 
-  # --- Align Axes (Crucial for visual comparison) ---
-  # This aligns the plot panels vertically even if y-axis label widths differ
+  # Align axes
   g_rain_grob <- ggplotGrob(g_rain)
   g_flow_grob <- ggplotGrob(g_flow)
   
@@ -196,31 +194,28 @@ plot_rainfall_runoff <- function(df_event, event_id) {
   g_rain_grob$widths[2:5] <- as.list(maxWidth)
   g_flow_grob$widths[2:5] <- as.list(maxWidth)
   
-  # Combine: Rainfall gets 1 part height, Flow gets 2 parts
+  #Combine P and Q 1:2 height
   combined_plot <- plot_grid(g_rain_grob, g_flow_grob, ncol = 1, rel_heights = c(1, 2), align = "v")
   
   return(combined_plot)
 }
 
-# 3. (Optional) Loop to create a multi-page PDF
-# This is the best way to inspect many events quickly.
+#Loop for all hydrographs in a single pdf
 
 unique_events <- unique(df_events$Event)
 
 pdf("All_Events_Inspection.pdf", width = 10, height = 7)
 
 for (ev in unique_events) {
-  # Filter data for current event
-  df_subset <- df_events %>% filter(Event == ev)
+    df_subset <- df_events %>% filter(Event == ev)
   
-  # Skip empty events
-  if(nrow(df_subset) > 0) {
+    if(nrow(df_subset) > 0) {
     p <- plot_rainfall_runoff(df_subset, ev)
-    print(p) # Print page to PDF
+    print(p) #print to pdf
   }
 }
 
-dev.off() # Close PDF
+dev.off()
 ```
 
 
